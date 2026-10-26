@@ -13,8 +13,10 @@ public class TodoApiTests : IDisposable
 
     public TodoApiTests()
     {
+        // Set TASKAPI_TEST_CONNECTION to a SQL Server connection string to run the same tests against SQL Server.
+        var connection = Environment.GetEnvironmentVariable("TASKAPI_TEST_CONNECTION") ?? $"Data Source={_dbPath}";
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
-            builder.UseSetting("ConnectionStrings:Default", $"Data Source={_dbPath}"));
+            builder.UseSetting("ConnectionStrings:Default", connection));
         _client = _factory.CreateClient();
     }
 

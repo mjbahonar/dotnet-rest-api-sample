@@ -3,8 +3,15 @@ using TaskApi;
 
 var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<TodoDb>(options =>
-    options.UseSqlite(builder.Configuration.GetConnectionString("Default") ?? "Data Source=todos.db"));
+// A "Server=..." connection string selects SQL Server; anything else falls back to a local SQLite file.
+builder.Services.AddDbContext<TodoDb>((sp, options) =>
+{
+    var connection = sp.GetRequiredService<IConfiguration>().GetConnectionString("Default") ?? "Data Source=todos.db";
+    if (connection.Contains("Server=", StringComparison.OrdinalIgnoreCase))
+        options.UseSqlServer(connection);
+    else
+        options.UseSqlite(connection);
+});
 
 var app = builder.Build();
 

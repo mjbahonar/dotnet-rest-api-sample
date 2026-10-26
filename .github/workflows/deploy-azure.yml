@@ -1,0 +1,44 @@
+name: Deploy to Azure
+
+# Manual trigger only. Needs an Azure subscription, a resource group, and a service principal
+# with a federated credential for this repository (OIDC, no stored passwords).
+#
+# Repository secrets:   AZURE_CLIENT_ID, AZURE_TENANT_ID, AZURE_SUBSCRIPTION_ID, SQL_ADMIN_PASSWORD
+# Repository variables: AZURE_RESOURCE_GROUP, AZURE_APP_NAME
+
+on:
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
+          subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Provision App Service and Azure SQL
+        run: >
+          az deployment group create
+          --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}"
+          --template-file infra/main.bicep
+          --parameters appName="${{ vars.AZURE_APP_NAME }}" sqlAdminPassword="${{ secrets.SQL_ADMIN_PASSWORD }}"
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - run: dotnet publish src/TaskApi/TaskApi.csproj -c Release -o publish
+
+      - uses: azure/webapps-deploy@v3
+        with:
+          app-name: ${{ vars.AZURE_APP_NAME }}
+          package: publish

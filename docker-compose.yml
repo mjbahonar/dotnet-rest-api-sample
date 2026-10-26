@@ -1,0 +1,23 @@
+services:
+  db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: ${SA_PASSWORD:?Set SA_PASSWORD (min 8 chars, upper, lower, digit, symbol)}
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqldata:/var/opt/mssql
+
+  api:
+    build: .
+    depends_on:
+      - db
+    environment:
+      ConnectionStrings__Default: "Server=db,1433;Database=TaskApi;User Id=sa;Password=${SA_PASSWORD};TrustServerCertificate=True"
+    ports:
+      - "8080:8080"
+    restart: on-failure
+
+volumes:
+  sqldata:
